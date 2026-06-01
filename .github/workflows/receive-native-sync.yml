@@ -33,9 +33,24 @@ jobs:
             "$PWD"
 
       - name: Create PR if changed
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: copilot-sync/shared-instructions
-          title: "chore: sync native copilot instructions"
-          commit-message: "chore: sync native copilot instructions"
-          body: "Automated sync from central review repository."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to sync"
+            exit 0
+          fi
+
+          BRANCH="copilot-sync/shared-instructions"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add -A
+          git commit -m "chore: sync native copilot instructions"
+          git push --force origin "$BRANCH"
+
+          if ! gh pr list --head "$BRANCH" --state open | grep -q .; then
+            gh pr create \
+              --title "chore: sync native copilot instructions" \
+              --body "Automated sync from central review repository."
+          fi
