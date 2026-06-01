@@ -32,6 +32,9 @@ jobs:
             "$PWD/.central" \
             "$PWD"
 
+      - name: Clean up central checkout
+        run: rm -rf .central
+
       - name: Create PR if changed
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
