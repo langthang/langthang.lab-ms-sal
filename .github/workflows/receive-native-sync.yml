@@ -1,0 +1,41 @@
+name: receive-native-sync
+
+on:
+  repository_dispatch:
+    types: [copilot-native-sync]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.client_payload.central_repo }}
+          ref: ${{ github.event.client_payload.central_ref }}
+          token: ${{ secrets.CENTRAL_READ_PAT }}
+          path: .central
+
+      - name: Sync native instructions
+        run: |
+          chmod +x .central/scripts/sync-native-instructions.sh
+          .central/scripts/sync-native-instructions.sh \
+            "${{ github.event.client_payload.target_key }}" \
+            ".central/config/repo-map.json" \
+            "$PWD/.central" \
+            "$PWD"
+
+      - name: Create PR if changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: copilot-sync/shared-instructions
+          title: "chore: sync native copilot instructions"
+          commit-message: "chore: sync native copilot instructions"
+          body: "Automated sync from central review repository."
